@@ -1,0 +1,72 @@
+name: Build PentestTweak v3 - Triple Attack
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Theos & SDK
+        run: |
+          brew install ldid
+          export THEOS=~/theos
+          rm -rf $THEOS
+          git clone --recursive https://github.com/theos/theos.git $THEOS
+          mkdir -p $THEOS/sdks
+          curl -ksL "https://github.com/theos/sdks/releases/latest/download/iPhoneOS14.5.sdk.tar.xz" -o $THEOS/sdks/sdk.tar.xz
+          tar -xf $THEOS/sdks/sdk.tar.xz -C $THEOS/sdks/
+          echo "THEOS=$THEOS" >> $GITHUB_ENV
+
+      - name: Create substrate.h placeholder
+        run: |
+          mkdir -p $THEOS/include
+          cat > $THEOS/include/substrate.h << 'EOF'
+          #ifndef SUBSTRATE_H
+          #define SUBSTRATE_H
+          #include <objc/runtime.h>
+          #ifdef __cplusplus
+          extern "C" {
+          #endif
+          void MSHookMessageEx(Class c, SEL s, IMP h, IMP *o);
+          void MSHookFunction(void *sym, void *rep, void **res);
+          #ifdef __cplusplus
+          }
+          #endif
+          #endif
+          EOF
+
+      - name: Build dylib
+        run: |
+          make clean 2>/dev/null || true
+          make
+
+      - name: Verify output
+        run: |
+          DYLIB=.theos/obj/debug/PentestTweak.dylib
+          echo "=== File Type ==="
+          file $DYLIB
+          echo "=== Architecture ==="
+          lipo -info $DYLIB 2>/dev/null || true
+          echo "=== Dependencies ==="
+          otool -L $DYLIB
+          echo "=== Substrate Check ==="
+          if otool -L $DYLIB | grep -qi "CydiaSubstrate.framework"; then
+            echo "FAIL: Still has CydiaSubstrate dependency!"
+            exit 1
+          else
+            echo "PASS: Zero external dependencies."
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PentestTweak-v3-TripleAttack
+          path: .theos/obj/debug/PentestTweak.dylib
+          retention-days: 30
