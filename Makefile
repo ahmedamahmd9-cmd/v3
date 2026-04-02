@@ -9,8 +9,7 @@ TWEAK_NAME := PentestTweak
 # v3 Triple Attack — ZERO external dependencies
 PentestTweak_FILES := Tweak.xm
 PentestTweak_FRAMEWORKS := Foundation
-PentestTweak_CFLAGS := -fobjc-arc -Wno-deprecated-declarations
-
+PentestTweak_CFLAGS := -fobjc-arc -Wno-deprecated-declarations -Wno-error -Wno-incompatible-pointer-types
 include $(THEOS_MAKE_PATH)/tweak.mk
 
 after-stage::
