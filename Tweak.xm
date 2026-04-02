@@ -138,7 +138,7 @@ static NSArray *PT_GetTargetUserDefaultsKeys(void) {
  * REGISTRATION: Must be called VERY EARLY — before any networking code runs.
  *               We register it in the constructor (__attribute__((constructor))).
  */
-@interface PTNetworkInterceptor : NSURLProtocol
+@interface PTNetworkInterceptor : NSURLProtocol <NSURLSessionDataDelegate>
 @property (nonatomic, strong) NSMutableData *receivedData;
 @property (nonatomic, strong) NSHTTPURLResponse *httpResponse;
 @property (nonatomic, strong) NSURLSessionDataTask *dataTask;
@@ -214,7 +214,7 @@ didReceiveResponse:(NSURLResponse *)response
     PT_NET(@"Intercepted: %@ %@ (%ld)",
            dataTask.originalRequest.HTTPMethod,
            dataTask.originalRequest.URL.absoluteString,
-           (long)response.statusCode);
+           (long)((NSHTTPURLResponse *)response).statusCode);
 
     completionHandler(NSURLSessionResponseAllow);
 }
